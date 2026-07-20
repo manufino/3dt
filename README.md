@@ -64,8 +64,9 @@ dependencies.
 
 ## Building
 
-No third-party libraries on either platform: the platform layer (window, GL context,
-input, drag&drop) is hand-written — Win32/WGL on Windows, Xlib/GLX on Linux.
+No third-party libraries on any platform: the platform layer (window, GL context,
+input, drag&drop) is hand-written — Win32/WGL on Windows, Xlib/GLX on Linux,
+Cocoa/NSOpenGL on macOS.
 
 ### Windows (MinGW-w64)
 
@@ -109,6 +110,25 @@ files via drag&drop (XDND) or the command line. Note: development happened on
 Windows — the Linux backend compiles against Xlib/GLX but still needs testing on a
 real Linux machine.
 
+### macOS (Cocoa)
+
+Requires Xcode command line tools (`xcode-select --install`) and CMake — no other
+dependencies. The backend is Cocoa/AppKit with an `NSOpenGLContext` (OpenGL is
+deprecated on macOS but fully functional; the build silences the deprecation
+markers):
+
+```sh
+cmake -S . -B build-cmake -DCMAKE_BUILD_TYPE=Release
+cmake --build build-cmake
+./build-cmake/3dt path/to/model.step
+```
+
+The result is a plain command-line executable (no `.app` bundle). Retina displays
+are rendered at full backing resolution. `Cmd+O` (or `Ctrl+O`) opens the file
+dialog and `Cmd+Q` quits — the Command key doubles as `Ctrl` for every shortcut.
+Note: the macOS backend is built by CI and has **not yet been tested on a real
+Mac** (see limitations).
+
 ## Project layout
 
 ```
@@ -124,7 +144,9 @@ src/
   overlay.h / .cpp         2D text/panel pipeline over a platform font atlas
   platform.h               abstract platform interface (window, GL, input, dialogs)
   platform_win32.cpp       Win32/WGL/GDI backend
-  platform_x11.cpp         Linux Xlib/GLX backend (XDND, EWMH, built-in bitmap font)
+  platform_x11.cpp         Linux Xlib/GLX backend (XDND, EWMH)
+  platform_macos.mm        macOS Cocoa/AppKit + NSOpenGLContext backend (ARC)
+  bitmap_font.h / .cpp     embedded 5x7 overlay font shared by the X11/macOS backends
   app.cpp                  portable app logic: input commands, file dispatch
 test/                      sample models (STL ASCII/binary, STEP incl. assemblies, OBJ)
 ```
@@ -138,6 +160,9 @@ test/                      sample models (STL ASCII/binary, STEP incl. assemblie
 - Section views render the interior hollow (no cap fill on the cut plane).
 - The Linux (X11/GLX) backend compiles but was developed on Windows and still needs
   testing on a real Linux machine.
+- The macOS (Cocoa) backend was written on Windows and is compiled by CI only: it has
+  **not yet been tested on a real Mac** (rendering, retina scaling, input and the file
+  dialog all need a first hands-on pass).
 
 ## License
 

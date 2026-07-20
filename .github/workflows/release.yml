@@ -1,0 +1,105 @@
+# Build 3dt for Windows, Linux and macOS.
+# - Every push to main and every PR: build check on all three platforms.
+# - Push of a tag "v*": builds + portable packages + GitHub Release.
+
+name: build-release
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: false
+          install: >-
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-cmake
+            mingw-w64-x86_64-ninja
+      - name: Configure and build
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+          cmake --build build --parallel
+      - name: Package
+        run: |
+          mkdir -p dist/3dt
+          cp build/3dt.exe README.md LICENSE dist/3dt/
+          cp docs/screenshot.png dist/3dt/ || true
+          cd dist && zip -r ../3dt-windows-x64.zip 3dt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: 3dt-windows-x64
+          path: 3dt-windows-x64.zip
+
+  linux:
+    runs-on: ubuntu-22.04   # oldest LTS runner -> binary runs on 22.04+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake libx11-dev libgl1-mesa-dev
+      - name: Configure and build
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build --parallel
+      - name: Package
+        run: |
+          mkdir -p dist/3dt
+          cp build/3dt README.md LICENSE dist/3dt/
+          cp docs/screenshot.png dist/3dt/ || true
+          tar -C dist -czf 3dt-linux-x64.tar.gz 3dt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: 3dt-linux-x64
+          path: 3dt-linux-x64.tar.gz
+
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure and build (universal binary)
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release \
+                -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64"
+          cmake --build build --parallel
+      - name: Package
+        run: |
+          mkdir -p dist/3dt
+          cp build/3dt README.md LICENSE dist/3dt/
+          cp docs/screenshot.png dist/3dt/ || true
+          tar -C dist -czf 3dt-macos-universal.tar.gz 3dt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: 3dt-macos-universal
+          path: 3dt-macos-universal.tar.gz
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [windows, linux, macos]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            3dt-windows-x64.zip
+            3dt-linux-x64.tar.gz
+            3dt-macos-universal.tar.gz
+          generate_release_notes: true

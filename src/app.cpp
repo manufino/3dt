@@ -30,10 +30,11 @@
 #include "mesh.h"
 #include "platform.h"
 #include "renderer.h"
+#include "version.h"
 
 namespace {
 
-const char* kBaseTitle = "3dt - STL/STEP/OBJ Viewer";
+const char* kBaseTitle = "3dt " APP_VERSION " - STL/STEP/OBJ Viewer";
 
 Renderer g_renderer;
 Mesh g_mesh;
@@ -67,7 +68,7 @@ std::string fileNameOf(const std::string& path) {
 
 void updateTitle() {
     if (g_hasMesh) {
-        std::string t = "3dt - " + g_fileName + " - " +
+        std::string t = "3dt " APP_VERSION " - " + g_fileName + " - " +
                         std::to_string(g_mesh.triangleCount()) + " tris";
         platform::setWindowTitle(t.c_str());
     } else {
@@ -88,7 +89,7 @@ void loadFile(const platform::FileRef& file) {
     }
 
     // Loading big files can take seconds; show it in the title (synchronous).
-    platform::setWindowTitle("3dt - Loading...");
+    platform::setWindowTitle("3dt " APP_VERSION " - Loading...");
 
     std::string err;
     Mesh mesh;
