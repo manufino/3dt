@@ -1,0 +1,19 @@
+# Build output
+build/
+build-cmake/
+*.o
+*.obj
+*.exe
+
+# CMake artifacts (out-of-source dirs already covered above)
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+
+# Editor / OS leftovers
+*.swp
+*~
+Thumbs.db
+Desktop.ini
+.vscode/
+.idea/
